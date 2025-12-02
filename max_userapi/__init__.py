@@ -1,7 +1,8 @@
 """max_userapi - Высокоуровневая Python-библиотека для работы с Max Messenger UserAPI"""
 
 from .client import UserAPI
-from .models import User, Dialog, Chat, Message, GroupInfo, Update
+from .models import User, Dialog, Chat, Message, GroupInfo, Update, Contact
+# Обратная совместимость - импорты из новой структуры
 from .exceptions import (
     MaxUserAPIError,
     AuthError,
@@ -22,6 +23,7 @@ __all__ = [
     "Message",
     "GroupInfo",
     "Update",
+    "Contact",
     # Исключения
     "MaxUserAPIError",
     "AuthError",

@@ -3,8 +3,8 @@ from datetime import datetime
 from typing import List, Callable, Awaitable
 import asyncio
 import logging
-from .models import Message
-from .exceptions import ConnectionError
+from ..models import Message
+from ..exceptions import ConnectionError
 
 # Импорт из Asmax
 from Asmax.Packets.SendMessage import (
