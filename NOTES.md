@@ -34,7 +34,7 @@
 - `CreateGroupPacket` / `CreateGroupAnswerPacket` (opcode 65)
 - `UpdateGroupSettingsPacket` / `UpdateGroupSettingsAnswerPacket` (opcode 66)
 - `AddGroupMembersPacket` / `AddGroupMembersAnswerPacket` (opcode 67)
-- `RemoveGroupMembersPacket` / `RemoveGroupMembersAnswerPacket` (opcode 68)
+- `RemoveGroupMembersPacket` / `RemoveGroupMembersAnswerPacket` (opcode 77 - CHAT_MEMBERS_UPDATE)
 - `GetChatInfoPacket` / `GetChatInfoAnswerPacket` (opcode 69)
 
 ## Механизм работы
