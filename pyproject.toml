@@ -34,8 +34,12 @@ dev = [
     "mypy>=1.0.0",
 ]
 
-[tool.setuptools]
-packages = ["max_userapi"]
+[project.urls]
+Homepage = "https://github.com/Davithi/max_client_api"
+Issues = "https://github.com/Davithi/max_client_api/issues"
+
+[tool.setuptools.packages.find]
+include = ["max_userapi*"]
 
 [tool.black]
 line-length = 100

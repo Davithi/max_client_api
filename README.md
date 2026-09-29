@@ -31,11 +31,8 @@ await api.send_message(chat_id=123456789, text="Привет из Python! 👋")
 Требуется Python 3.10+.
 
 ```bash
-git clone https://github.com/Davithi/max_client_api.git max_userapi
-pip install -r max_userapi/requirements.txt
+pip install git+https://github.com/Davithi/max_client_api
 ```
-
-Папка должна называться `max_userapi` — импортируйте библиотеку из родительской директории:
 
 ```python
 from max_userapi import UserAPI
@@ -132,11 +129,12 @@ print(info.title, info.member_count)
 ## Структура проекта
 
 ```
-client.py      — главный класс UserAPI
-managers/      — логика: auth, messages, dialogs, groups, contacts
-packets/       — пакеты протокола Max
-models/        — dataclass-модели
-exceptions.py  — исключения
+max_userapi/
+├── client.py      — главный класс UserAPI
+├── managers/      — логика: auth, messages, dialogs, groups, contacts
+├── packets/       — пакеты протокола Max
+├── models/        — dataclass-модели
+└── exceptions.py  — исключения
 ```
 
 ## Участие в проекте
