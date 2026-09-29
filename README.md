@@ -1,223 +1,154 @@
 # max_userapi
 
-Высокоуровневая Python-библиотека для работы с Max Messenger UserAPI поверх [Asmax](https://github.com/WallD3v/Asmax).
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Status](https://img.shields.io/badge/status-alpha-orange)
 
-## Описание
+**Асинхронная Python-библиотека для работы с мессенджером [Max](https://max.ru) от имени пользователя (UserAPI).**
 
-`max_userapi` предоставляет простой и понятный интерфейс для работы с Max Messenger через WebSocket API. Библиотека скрывает низкоуровневые детали протокола и предоставляет удобные методы для:
+Авторизация по SMS, отправка и получение сообщений, диалоги, контакты и полное управление группами — через простой `async/await` интерфейс поверх [Asmax](https://github.com/WallD3v/Asmax).
 
-- Авторизации по SMS-коду
-- Отправки и получения сообщений
-- Работы с диалогами и группами
-- Создания и управления группами (после исследования протокола)
+> ⚠️ Неофициальная библиотека. Не связана с командой Max. Используйте на свой страх и риск и соблюдайте правила сервиса.
 
-## Требования
+```python
+api = UserAPI(session_name="my_session")
+await api.connect()
+await api.login_via_sms(phone="+79991234567")
+await api.send_message(chat_id=123456789, text="Привет из Python! 👋")
+```
 
-- Python 3.10+
-- Asmax >= 0.1.1
+## Возможности
+
+- 🔐 **Авторизация** — по SMS-коду и по сохранённому токену сессии
+- 💬 **Сообщения** — отправка, редактирование, удаление, приём входящих и стикеров в реальном времени
+- 📋 **Диалоги** — список чатов
+- 👥 **Контакты** — список контактов, поиск по ID и номеру телефона
+- 🏘 **Группы** — создание, название и описание, добавление/удаление участников, инвайт-ссылки, вступление и выход, настройки прав
+- ⚡ **Асинхронность** — все сетевые методы на `asyncio`
 
 ## Установка
 
+Требуется Python 3.10+.
+
 ```bash
-pip install max-userapi
+git clone https://github.com/Davithi/max_client_api.git max_userapi
+pip install -r max_userapi/requirements.txt
 ```
 
-Или из исходников:
+Папка должна называться `max_userapi` — импортируйте библиотеку из родительской директории:
 
-```bash
-git clone https://github.com/yourusername/max_userapi.git
-cd max_userapi
-pip install -e .
+```python
+from max_userapi import UserAPI
 ```
 
 ## Быстрый старт
 
-### Подключение и авторизация
+### Первый вход по SMS
 
 ```python
 import asyncio
 from max_userapi import UserAPI
 
 async def main():
-    # Создаём клиент
-    api = UserAPI(session_name="my_session")
-    
-    # Подключаемся
+    api = UserAPI(session_name="my_session")  # токен сохранится в my_session.max
     await api.connect()
-    
-    # Авторизуемся по номеру телефона
     await api.login_via_sms(
         phone="+79991234567",
-        code_callback=lambda token: input("Введите SMS-код: ")
+        code_callback=lambda token: input("Введите SMS-код: "),
     )
-    
-    print("Авторизация успешна!")
+    print("Вошли как", api.get_current_user())
 
 asyncio.run(main())
 ```
 
-### Отправка сообщения
+### Повторный вход по сохранённой сессии
 
 ```python
-import asyncio
-from max_userapi import UserAPI
-
-async def main():
-    api = UserAPI(session_name="my_session")
-    await api.connect()
-    
-    # Отправляем сообщение
-    message = await api.send_message(
-        chat_id=123456789,
-        text="Привет из max_userapi!"
-    )
-    
-    print(f"Сообщение отправлено: {message.text}")
-
-asyncio.run(main())
+api = UserAPI(session_name="my_session")
+await api.connect()
+await api.login_by_token()
 ```
 
-### Получение входящих сообщений
+### Отправка, редактирование и удаление сообщений
 
 ```python
-import asyncio
+msg = await api.send_message(chat_id=123456789, text="Привет!")
+await api.edit_message(chat_id=123456789, message_id=msg.id, new_text="Привет, мир!")
+await api.delete_message(chat_id=123456789, message_ids=[msg.id], for_me=False)
+```
+
+### Приём входящих сообщений
+
+```python
 from max_userapi import UserAPI, Update
 
-async def main():
-    api = UserAPI(session_name="my_session")
-    await api.connect()
-    
-    # Обработчик обновлений
-    async def handle_update(update: Update):
-        if update.type == "message" and update.message:
-            msg = update.message
-            print(f"Новое сообщение в {msg.chat_id}: {msg.text}")
-    
-    # Подписываемся на обновления
-    await api.listen_updates(handle_update)
-    
-    # Бесконечный цикл
-    while api.is_connected():
-        await asyncio.sleep(1)
+async def handle_update(update: Update):
+    if update.type == "message":
+        print(f"[{update.message.chat_id}] {update.message.text}")
+    elif update.type == "sticker":
+        print("Стикер:", update.data["sticker"])
 
-asyncio.run(main())
+await api.listen_updates(handle_update)
+
+while api.is_connected():
+    await asyncio.sleep(1)
 ```
 
-### Создание группы
+### Работа с группами
 
 ```python
-import asyncio
-from max_userapi import UserAPI
+group = await api.create_group(title="Моя группа", member_ids=[111, 222])
 
-async def main():
-    api = UserAPI(session_name="my_session")
-    await api.connect()
-    
-    # Создаём группу
-    group = await api.create_group(
-        title="Моя группа",
-        member_ids=[123456, 789012, 345678]
-    )
-    
-    print(f"Группа создана: {group.title} (ID: {group.id})")
-    
-    # Изменяем название
-    await api.set_group_title(
-        chat_id=group.id,
-        new_title="Новое название"
-    )
+await api.set_group_title(chat_id=group.id, new_title="Новое название")
+await api.set_group_description(chat_id=group.id, description="Описание группы")
+await api.add_group_members(chat_id=group.id, member_ids=[333])
 
-asyncio.run(main())
+link = await api.get_group_invite_link(chat_id=group.id)
+print("Ссылка-приглашение:", link)
+
+info = await api.get_group_info(chat_id=group.id)
+print(info.title, info.member_count)
 ```
 
-**Примечание**: Методы работы с группами (`create_group`, `set_group_title` и т.д.) требуют исследования протокола Max Messenger. Сейчас они возвращают `NotImplementedError`. Для реализации необходимо:
+## Справочник API
 
-1. Перехватить WebSocket трафик при создании/изменении группы через приложение Max Messenger
-2. Определить opcode и структуру пакетов
-3. Реализовать соответствующие пакеты в Asmax или напрямую в max_userapi
+Все методы класса `UserAPI` (кроме `get_current_user` и `is_connected`) асинхронные.
 
-## Примеры
+| Категория | Методы |
+|---|---|
+| Подключение | `connect()`, `disconnect()`, `is_connected()` |
+| Авторизация | `login_via_sms(phone, code_callback)`, `login_by_token()`, `get_profile()`, `get_current_user()` |
+| Сообщения | `send_message(chat_id, text)`, `edit_message(chat_id, message_id, new_text)`, `delete_message(chat_id, message_ids, for_me)`, `listen_updates(handler)` |
+| Диалоги | `get_dialogs(limit, offset)` |
+| Контакты | `get_contacts(limit, offset)`, `get_contact_by_id(contact_id)`, `get_contact_by_phone(phone)`, `check_phone(phone)` |
+| Группы | `create_group`, `get_group_info`, `set_group_title`, `set_group_description`, `add_group_members`, `remove_group_members`, `leave_group`, `get_admin_groups` |
+| Инвайт-ссылки | `get_group_invite_link`, `revoke_group_invite_link`, `join_group_by_link`, `get_group_preview_by_link` |
+| Права в группе | `update_group_options`, `set_only_owner_can_change_icon_title`, `set_only_admin_can_add_member`, `set_all_can_pin_message`, `set_members_can_see_private_link`, `set_only_admin_can_call` |
 
-В папке `examples/` находятся готовые примеры использования:
+**Модели:** `User`, `Contact`, `Dialog`, `Chat`, `Message`, `GroupInfo`, `Update`
 
-- `login_and_save_session.py` - авторизация и сохранение сессии
-- `send_message.py` - отправка сообщения
-- `listen_updates.py` - получение входящих сообщений
-- `create_group_and_rename.py` - создание группы (требует реализации)
+**Исключения:** `MaxUserAPIError` (базовое), `AuthError`, `ConnectionError`, `ChatNotFoundError`, `GroupNotFoundError`
 
-Запуск примеров:
+## Структура проекта
 
-```bash
-python examples/login_and_save_session.py
+```
+client.py      — главный класс UserAPI
+managers/      — логика: auth, messages, dialogs, groups, contacts
+packets/       — пакеты протокола Max
+models/        — dataclass-модели
+exceptions.py  — исключения
 ```
 
-## API Документация
+## Участие в проекте
 
-### UserAPI
+Pull request'ы и issue приветствуются! Особенно полезно:
 
-Главный класс библиотеки.
+- поддержка медиа (фото, файлы, голосовые)
+- тесты и примеры
+- исследование новых opcode протокола
 
-#### Методы
-
-- `connect()` - Подключение к серверу
-- `login_via_sms(phone, code_callback)` - Авторизация по SMS
-- `send_message(chat_id, text)` - Отправка сообщения
-- `get_dialogs(limit)` - Получение списка диалогов (требует реализации)
-- `listen_updates(handler)` - Подписка на обновления
-- `create_group(title, member_ids)` - Создание группы (требует реализации)
-- `set_group_title(chat_id, new_title)` - Изменение названия группы (требует реализации)
-- `add_group_members(chat_id, member_ids)` - Добавление участников (требует реализации)
-- `remove_group_members(chat_id, member_ids)` - Удаление участников (требует реализации)
-- `get_group_info(chat_id)` - Получение информации о группе (требует реализации)
-- `is_connected()` - Проверка подключения
-- `disconnect()` - Отключение
-
-### Модели данных
-
-- `User` - Пользователь
-- `Dialog` - Диалог/Чат
-- `Chat` - Чат (группа или личный)
-- `Message` - Сообщение
-- `GroupInfo` - Информация о группе
-- `Update` - Входящее обновление
-
-## Архитектура
-
-Библиотека состоит из модулей:
-
-- `client.py` - Главный класс UserAPI
-- `auth.py` - Менеджер авторизации
-- `messages.py` - Менеджер работы с сообщениями
-- `dialogs.py` - Менеджер работы с диалогами
-- `groups.py` - Менеджер работы с группами
-- `models.py` - Модели данных (dataclasses)
-- `exceptions.py` - Исключения
+Если библиотека пригодилась — поставьте ⭐, это помогает проекту.
 
 ## Лицензия
 
 MIT
-
-## Связь с Asmax
-
-Эта библиотека использует [Asmax](https://github.com/WallD3v/Asmax) для низкоуровневой работы с протоколом Max Messenger. Asmax отвечает за:
-
-- WebSocket соединение
-- Отправку и получение пакетов
-- Базовую авторизацию
-- Обработку протокольных деталей
-
-`max_userapi` предоставляет высокоуровневый интерфейс поверх Asmax, скрывая детали протокола и предоставляя удобные методы для работы.
-
-## Вклад в проект
-
-Приветствуются pull request'ы! Особенно полезны:
-
-- Реализация методов работы с группами (требуется исследование протокола)
-- Улучшение обработки ошибок
-- Добавление новых функций
-- Исправление багов
-
-## Поддержка
-
-Если у вас есть вопросы или проблемы, создайте issue на GitHub.
-
